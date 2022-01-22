@@ -8,26 +8,30 @@
 BluetoothSerial SerialBT;
 
 DynamicJsonDocument doc(1024);
+DynamicJsonDocument altDoc(1024);
 DynamicJsonDocument recievedDoc(1024);
 JsonObject obj;
+JsonObject altObj;
 JsonObject recievedObj;
 
 unsigned long currentTime;
 unsigned long lastMessageTime;
 String input;
 String output;
-int timeInterval = 5000; //5 second
+int timeInterval = 300000; //300 seconds = 5 mins
 
 void setup() {
 
   String defaultJson =
-    "{\"temperature\":0,\"co2\":0,\"tvoc\":0}";
-  //Temperature in C
-  //CO2 in PPM
-  //TVOC in PPB
+    "{\"ftemp\":0,\"fmic\":0,\"val\":0,\"tresp\":0,\"ratio\":0,\"co2\":0,\"tvoc\":0}";
+
+  String altJson =
+    "{\"co2\":0,\"tvoc\":0,\"temp\":0}";
 
   deserializeJson(doc, defaultJson);
   obj = doc.as<JsonObject>();
+  deserializeJson(altDoc, altJson);
+  altObj = altDoc.as<JsonObject>();
   Serial.begin(115200);
   SerialBT.begin("ESP32-FaceMask"); //Bluetooth device name
   Serial.println("The device started, now you can pair it with bluetooth!");
@@ -37,7 +41,7 @@ void setup() {
 void loop() {
   currentTime = millis();
   if ((currentTime - lastMessageTime) > timeInterval) {
-    sendSensorData();
+    sendSensorData(1);
     lastMessageTime = millis();
   }
   bluetoothDataSerial();
@@ -55,17 +59,35 @@ void bluetoothDataSerial() {
 }
 
 void generateNewData() {
-  obj[String("temperature")] = random(20, 30);
+  obj[String("ftemp")] = random(0, 46); //Se asume que se imprime la maxima
+  obj[String("fmic")] = random(0, 30);  //Se asume que se imprime la maxima
+  obj[String("val")] = random(0,2);
+  obj[String("tresp")] = random(0,3);
+  obj[String("ratio")] = random(5, 100)/100.0; //Al no saber los valores de FrIn y FrEx se inventa un ratio temporalmente
   obj[String("co2")] = random(300, 600);
   obj[String("tvoc")] = random(50);
 }
 
-void sendSensorData() {
-  generateNewData();
+void generateNewDataAlt() {
+  altObj[String("temp")] = random(20, 30);
+  altObj[String("co2")] = random(300, 600);
+  altObj[String("tvoc")] = random(50);
+}
+
+void sendSensorData(boolean typeJSON) {
   output = "";
-  serializeJson(doc, output);
-  Serial.println(output);
-  SerialBT.println(output);
+  if(typeJSON){
+    generateNewDataAlt();
+    serializeJson(altDoc, output);
+    Serial.println(output);
+    SerialBT.println(output);
+  }else{
+    generateNewData();
+    serializeJson(doc, output);
+    Serial.println(output);
+    SerialBT.println(output);
+  }
+
 }
 
 void readBTChanges() {
@@ -74,6 +96,15 @@ void readBTChanges() {
   recievedObj = recievedDoc.as<JsonObject>();
   if (recievedObj["timeInterval"] !=  nullptr) {
     Serial.println("Resetting Time Interval");
-    timeInterval = int(recievedObj["timeInterval"]);
+    timeInterval = recievedDoc["timeInterval"];
+    Serial.println(timeInterval);
+  }
+  if (recievedObj["check"] !=  nullptr) {
+    Serial.println("Sending Total Sensor Information");
+    sendSensorData(0);
+  }
+  if (recievedObj["temp"] !=  nullptr) {
+    Serial.println("Sending Temperature Information");
+    sendSensorData(1);
   }
 }
