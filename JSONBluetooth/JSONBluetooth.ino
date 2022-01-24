@@ -23,7 +23,7 @@ int timeInterval = 300000; //300 seconds = 5 mins
 void setup() {
 
   String defaultJson =
-    "{\"ftemp\":0,\"fmic\":0,\"val\":0,\"tresp\":0,\"ratio\":0,\"co2\":0,\"tvoc\":0}";
+    "{\"ftemp\":0,\"fmic\":0,\"fresp\":0,\"val\":0,\"tresp\":0,\"ratio\":0,\"co2\":0,\"tvoc\":0}";
 
   String altJson =
     "{\"co2\":0,\"tvoc\":0,\"temp\":0}";
@@ -61,6 +61,7 @@ void bluetoothDataSerial() {
 void generateNewData() {
   obj[String("ftemp")] = random(0, 46); //Se asume que se imprime la maxima
   obj[String("fmic")] = random(0, 30);  //Se asume que se imprime la maxima
+  obj[String("fresp")] = random(0, 30);  //Frecuencia respoiratoria de fusion de Sensores
   obj[String("val")] = random(0,2);
   obj[String("tresp")] = random(0,3);
   obj[String("ratio")] = random(5, 100)/100.0; //Al no saber los valores de FrIn y FrEx se inventa un ratio temporalmente
